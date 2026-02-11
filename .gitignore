@@ -1,3 +1,13 @@
+# Environments
+.PythonVenv/
+venv/
+env/
+
+# Python Cache
 __pycache__/
+*.pyc
+
 .env
+
+# Data
 Data/
