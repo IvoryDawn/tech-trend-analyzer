@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from typing import List, Literal
 from langdetect import detect, DetectorFactory
 from sentiment_engine import SentimentAnalyzer    # Import your refactored class
+from fastapi.responses import FileResponse
 
 load_dotenv()
 DetectorFactory.seed = 0  # Set seed for consistent language detection
@@ -92,11 +93,9 @@ def prepare_features(age_days: int, comments: int, sentiment: int) -> np.array:
 async def fetch_github_issues(keyword: str):
     url = "https://api.github.com/search/issues"
     params = {
-        # 1. 'in:title' ensures the tech is the main subject, not just a random mention
-        # 2. 'label:bug OR label:enhancement' filters out generic chatter
-        "q": f"{keyword} in:title is:issue state:open", 
-        "per_page": 30, # To make our average score more accurate
-        "sort": "comments", # Sort by most discussed, not newest
+        "q": f"{keyword} in:title is:issue state:open comments:>3 created:>2024-01-01",
+        "per_page": 30,
+        "sort": "comments",
         "order": "desc"
     }
     headers = {
@@ -211,11 +210,13 @@ async def analyze_tech(tech_name: str, s_model = Depends(get_sentiment_model), p
                 # Use Popularity Model
                 try:
                     features = prepare_features(age_days=issue_data["age_days"], comments=issue_data["comments"], sentiment=sentiment_numeric)
-                    popularity_score = p_model.predict(features)[0]
+                    raw_ml_score = p_model.predict(features)[0]
                 except:
-                    popularity_score = 50.0
-                    
-                popularity_score = max(1, popularity_score * 3) 
+                    raw_ml_score = 50.0
+                
+                engagement_floor = issue_data["comments"] * 5.0 
+                
+                popularity_score = float(max(engagement_floor, raw_ml_score * 3.0, 1.0))
                 
                 results.append(AnalysisItem(
                     sentiment=sentiment_label,
@@ -267,14 +268,14 @@ async def analyze_tech(tech_name: str, s_model = Depends(get_sentiment_model), p
         avg_pop = sum(r.pred_popularity_score for r in results) / len(results)
         
         # The Decision Logic
-        if pos_percent >= 60 and avg_pop > 60:
-            verdict = "🔥 Highly Trending & Positive"
-        elif pos_percent >= 40:
-            verdict = "📈 Stable / Active Development"
-        elif pos_percent < 40 and avg_pop > 60:
-            verdict = "⚠️ High Engagement, but Highly Negative (Controversial)"
+        if avg_pop >= 120:
+            verdict = "🔥 Highly Trending (Massive Community Engagement)"
+        elif avg_pop >= 75:
+            verdict = "📈 Stable / Widespread Enterprise Use"
+        elif avg_pop >= 40:
+            verdict = "🛠️ Legacy Maintenance / Niche Adoption"
         else:
-            verdict = "📉 Low Trend / Declining"
+            verdict = "📉 Quiet Community / Low Trend"
     else:
         pos_percent = 0.0
         avg_pop = 0.0
@@ -296,16 +297,7 @@ async def analyze_tech(tech_name: str, s_model = Depends(get_sentiment_model), p
 
 @app.get('/')
 def root():
-    return {
-        "message": "Tech Trend Analyzer API",
-        "version": "1.0", 
-        "endpoints" : {
-            "GET /" : "Documentation", 
-            "GET /health": "Health Check", 
-            "GET /analyze/{tech_name}": "Real predictions with injected models",
-            "GET /docs": "Interactive API documentation"
-        }
-    }
+    return FileResponse("index.html")
 
 if __name__ == "__main__":
     import uvicorn

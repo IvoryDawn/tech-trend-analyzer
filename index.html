@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Trend Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Nunito', sans-serif; }
+        .fade-in { animation: fadeIn 0.4s ease-in forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-[#FFFBF9] text-[#4A4441] min-h-screen flex flex-col items-center py-12 px-6">
+
+    <div class="max-w-2xl w-full bg-white p-10 md:p-12 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-[#F0EBE9] mb-12">
+        
+        <div class="text-center mb-10">
+            <span class="text-4xl mb-4 block">✨</span>
+            <h1 class="text-3xl font-extrabold tracking-tight text-[#2D2926] mb-3">Tech Trend Analyzer</h1>
+            <p class="text-[#8A7F7A] font-medium">Discover what developers are actually building with through live GitHub sentiment.</p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-4 mb-8">
+            <input type="text" id="techInput" placeholder="e.g., pytorch, django, docker" 
+                   class="flex-1 px-6 py-4 rounded-2xl bg-[#FDFBFB] border border-[#E8E2E0] focus:outline-none focus:ring-4 focus:ring-[#E2A799]/20 focus:border-[#E2A799] transition-all text-lg placeholder:text-[#BDB5B1]"
+                   onkeydown="if(event.key === 'Enter') analyzeTech()">
+            <button onclick="analyzeTech()" 
+                    class="bg-[#D49486] hover:bg-[#C28275] text-white font-bold py-4 px-8 rounded-2xl shadow-sm hover:shadow-md transition-all active:scale-95 tracking-wide">
+                Analyze
+            </button>
+        </div>
+
+        <div id="loading" class="hidden text-center py-12 fade-in">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#E8E2E0] border-t-[#D49486] mb-4"></div>
+            <p class="text-[#8A7F7A] font-semibold animate-pulse">Gathering live data...</p>
+        </div>
+
+        <div id="error" class="hidden text-center py-10 bg-[#FFF5F5] rounded-2xl text-[#E06C6C] font-semibold fade-in">
+            <p>Oops! Something went wrong fetching the data. Please try again.</p>
+        </div>
+
+        <div id="results" class="hidden fade-in">
+            <div class="bg-[#FAF7F5] border border-[#F0EBE9] p-8 rounded-3xl mb-8 text-center transition-all hover:shadow-sm">
+                <h2 class="text-xs uppercase tracking-[0.2em] text-[#A39791] font-bold mb-3">Final Verdict</h2>
+                <p id="verdict" class="text-2xl font-extrabold text-[#2D2926] mb-6"></p>
+                <div class="flex justify-center gap-8 text-[#6B625E] font-medium">
+                    <div class="flex flex-col items-center">
+                        <span class="text-xs text-[#A39791] uppercase tracking-wider mb-1">Popularity</span>
+                        <span id="pop-score" class="text-lg font-bold text-[#D49486]"></span>
+                    </div>
+                    <div class="w-px bg-[#E8E2E0]"></div>
+                    <div class="flex flex-col items-center">
+                        <span class="text-xs text-[#A39791] uppercase tracking-wider mb-1">Sentiment</span>
+                        <span id="pos-score" class="text-lg font-bold text-[#D49486]"></span>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="text-sm uppercase tracking-wider text-[#A39791] font-bold mb-4 pl-2">Top Live Discussions</h3>
+            <ul id="issues-list" class="space-y-3"></ul>
+        </div>
+    </div>
+
+    <div class="max-w-4xl w-full">
+        <div class="text-center mb-8">
+            <h2 class="text-2xl font-extrabold text-[#2D2926] mb-2">How to use this data wisely 💡</h2>
+            <p class="text-[#8A7F7A]">Numbers only tell half the story. Here is how different engineers leverage this tool.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <div class="bg-white p-8 rounded-3xl border border-[#F0EBE9] shadow-sm hover:shadow-md transition-shadow">
+                <div class="text-3xl mb-4">🎓</div>
+                <h3 class="text-lg font-bold text-[#2D2926] mb-2">For Students</h3>
+                <p class="text-sm text-[#8A7F7A] leading-relaxed mb-4">
+                    Stop chasing hype. Before spending 100 hours learning a new framework, verify if it actually has an active community. 
+                </p>
+                <div class="bg-[#FDFBFB] p-4 rounded-2xl text-sm border border-[#F0EBE9]">
+                    <span class="font-bold text-[#D49486]">Pro Tip:</span> Look for "Highly Trending" verdicts to ensure your skills will be relevant for upcoming job hunts.
+                </div>
+            </div>
+
+            <div class="bg-white p-8 rounded-3xl border border-[#F0EBE9] shadow-sm hover:shadow-md transition-shadow">
+                <div class="text-3xl mb-4">🏗️</div>
+                <h3 class="text-lg font-bold text-[#2D2926] mb-2">For Senior Devs</h3>
+                <p class="text-sm text-[#8A7F7A] leading-relaxed mb-4">
+                    Evaluate the "health" of an open-source library before adding it to your enterprise architecture. 
+                </p>
+                <div class="bg-[#FDFBFB] p-4 rounded-2xl text-sm border border-[#F0EBE9]">
+                    <span class="font-bold text-[#D49486]">Pro Tip:</span> Click the live issues! High popularity with lots of "negative" bug reports actually indicates heavy enterprise usage, not a failing library.
+                </div>
+            </div>
+
+            <div class="bg-white p-8 rounded-3xl border border-[#F0EBE9] shadow-sm hover:shadow-md transition-shadow">
+                <div class="text-3xl mb-4">🚀</div>
+                <h3 class="text-lg font-bold text-[#2D2926] mb-2">For Founders</h3>
+                <p class="text-sm text-[#8A7F7A] leading-relaxed mb-4">
+                    Choose a sustainable tech stack. Ensure your core tech has massive community engagement for easier hiring and long-term support.
+                </p>
+                <div class="bg-[#FDFBFB] p-4 rounded-2xl text-sm border border-[#F0EBE9]">
+                    <span class="font-bold text-[#D49486]">Pro Tip:</span> If a tech returns "Quiet Community," you will struggle to find developers to maintain your MVP. Avoid it.
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        async function analyzeTech() {
+            const techInput = document.getElementById('techInput');
+            const techName = techInput.value.trim();
+            if (!techName) return;
+            
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('error').classList.add('hidden');
+            techInput.blur(); 
+            
+            try {
+                const response = await fetch(`/analyze/${techName.toLowerCase()}`);
+                if (!response.ok) throw new Error("API failed");
+                const data = await response.json();
+                
+                document.getElementById('verdict').innerText = data.summary.verdict;
+                document.getElementById('pop-score').innerText = Math.round(data.summary.average_popularity);
+                document.getElementById('pos-score').innerText = data.summary.positive_percentage + '%';
+                
+                const issuesList = document.getElementById('issues-list');
+                issuesList.innerHTML = ''; 
+                
+                data.results.forEach((issue, index) => {
+                    const isPositive = issue.sentiment === 'positive';
+                    const sentimentIcon = isPositive ? '🌱' : '🔧';
+                    const sentimentColor = isPositive ? 'text-[#7D9E7A]' : 'text-[#C28275]';
+                    const sentimentBg = isPositive ? 'bg-[#F2F7F2]' : 'bg-[#FFF5F3]';
+                    const delay = index * 0.1;
+                    
+                    issuesList.innerHTML += `
+                        <li class="p-5 bg-white rounded-2xl border border-[#F0EBE9] hover:border-[#E2A799] transition-colors shadow-sm" style="animation: fadeIn 0.4s ease-in ${delay}s forwards; opacity: 0;">
+                            <div class="flex items-start gap-3">
+                                <span class="text-xl shrink-0 ${sentimentBg} p-2 rounded-xl">${sentimentIcon}</span>
+                                <div>
+                                    <a href="${issue.issue_url}" target="_blank" class="text-[#4A4441] font-bold text-lg leading-snug hover:text-[#D49486] transition-colors line-clamp-2 mb-1">${issue.issue_title}</a>
+                                    <div class="flex items-center gap-2 text-sm text-[#A39791] font-medium">
+                                        <span>${issue.repo_name}</span>
+                                        <span>•</span>
+                                        <span class="${sentimentColor} uppercase tracking-wider text-xs font-bold">${issue.sentiment}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    `;
+                });
+                
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('results').classList.remove('hidden');
+                
+            } catch (e) {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('error').classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
