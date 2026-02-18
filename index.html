@@ -45,6 +45,11 @@
         </div>
 
         <div id="results" class="hidden fade-in">
+            
+            <div id="mock-warning" class="hidden bg-[#FFF5F3] border border-[#E2A799] text-[#C28275] p-4 rounded-xl mb-6 text-sm font-bold flex items-center justify-center gap-2 shadow-sm">
+                <span>⚠️</span> No highly-engaged GitHub issues found. Displaying sample ML evaluation.
+            </div>
+
             <div class="bg-[#FAF7F5] border border-[#F0EBE9] p-8 rounded-3xl mb-8 text-center transition-all hover:shadow-sm">
                 <h2 class="text-xs uppercase tracking-[0.2em] text-[#A39791] font-bold mb-3">Final Verdict</h2>
                 <p id="verdict" class="text-2xl font-extrabold text-[#2D2926] mb-6"></p>
@@ -61,7 +66,15 @@
                 </div>
             </div>
 
-            <h3 class="text-sm uppercase tracking-wider text-[#A39791] font-bold mb-4 pl-2">Top Live Discussions</h3>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 pl-2 pr-2 gap-2">
+                <h3 class="text-sm uppercase tracking-wider text-[#A39791] font-bold">Top Live Discussions</h3>
+                <div class="flex items-center gap-3 text-xs font-bold text-[#8A7F7A] bg-[#FDFBFB] py-1 px-3 rounded-lg border border-[#F0EBE9]">
+                    <span class="flex items-center gap-1"><span class="text-[#7D9E7A]">🌱</span> Positive/Growth</span>
+                    <span class="text-[#E8E2E0]">|</span>
+                    <span class="flex items-center gap-1"><span class="text-[#C28275]">🔧</span> Bugs/Troubleshooting</span>
+                </div>
+            </div>
+            
             <ul id="issues-list" class="space-y-3"></ul>
         </div>
     </div>
@@ -73,7 +86,6 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
             <div class="bg-white p-8 rounded-3xl border border-[#F0EBE9] shadow-sm hover:shadow-md transition-shadow">
                 <div class="text-3xl mb-4">🎓</div>
                 <h3 class="text-lg font-bold text-[#2D2926] mb-2">For Students</h3>
@@ -106,7 +118,6 @@
                     <span class="font-bold text-[#D49486]">Pro Tip:</span> If a tech returns "Quiet Community," you will struggle to find developers to maintain your MVP. Avoid it.
                 </div>
             </div>
-
         </div>
     </div>
 
@@ -126,6 +137,13 @@
                 if (!response.ok) throw new Error("API failed");
                 const data = await response.json();
                 
+                // Show/Hide Mock Data Warning based on backend status
+                if (data.status === 'mock') {
+                    document.getElementById('mock-warning').classList.remove('hidden');
+                } else {
+                    document.getElementById('mock-warning').classList.add('hidden');
+                }
+
                 document.getElementById('verdict').innerText = data.summary.verdict;
                 document.getElementById('pop-score').innerText = Math.round(data.summary.average_popularity);
                 document.getElementById('pos-score').innerText = data.summary.positive_percentage + '%';
